@@ -1,0 +1,29 @@
+# Core scientific stack
+pandas>=2.2
+numpy>=1.26,<2.3
+scipy
+scikit-learn
+statsmodels
+
+# Data source
+entsoe-py
+python-dotenv
+pyarrow
+requests
+yfinance        # gas TTF (TTF=F) + CO2 EUA (CO2.L) fundamentals
+
+# Forecast models
+lightgbm
+# LEAR is implemented in-house with scikit-learn (LassoLarsIC) to avoid
+# epftoolbox's heavy/pinned TF deps. See src/forecast/lear.py.
+
+# Trading layer (battery LP)
+cvxpy
+
+# Features / tuning / tests
+holidays         # FR/DE public-holiday calendar (load effect)
+optuna           # LightGBM hyperparameter search
+pytest           # pipeline guardrail tests
+
+# Viz
+matplotlib

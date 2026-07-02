@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Data (raw pulls can be re-fetched from ENTSO-E)
+data/raw/*.parquet
+data/processed/*.parquet
+data/raw/*.csv
+data/processed/*.csv
+
+# Results / artifacts
+results/*.png
+results/*.html
+results/*.csv
+results/models/
+
+# OS
+.DS_Store
