@@ -37,6 +37,22 @@ A 1 MW price-taker inflates absolute Sharpe (no market impact) — read **% capt
 Talking points: [docs/interview_notes.md](docs/interview_notes.md). Full walk-through:
 [notebooks/power_trading_quant.ipynb](notebooks/power_trading_quant.ipynb).
 
+## Figures
+*(all on real ENTSO-E data; regenerate with `python scripts/make_figures.py`)*
+
+**Fundamentals drive the level — the 2022 gas crisis**
+![power vs gas](docs/img/price_vs_gas.png)
+
+**Probabilistic day-ahead forecast (P10/P50/P90, conformal)**
+![forecast fan chart](docs/img/forecast_fan.png)
+
+**Crisis stress test — the model breaks out-of-distribution in 2022, then recovers**
+![regime crisis](docs/img/regime_crisis.png)
+
+| Battery arbitrage P&L vs perfect foresight | FR-DE spread — sign accuracy |
+|---|---|
+| ![battery pnl](docs/img/battery_pnl.png) | ![spread sign accuracy](docs/img/spread_signacc.png) |
+
 ## Run
 ```bash
 python run_all.py            # build data -> forecast -> battery + spread verdicts -> dashboard
