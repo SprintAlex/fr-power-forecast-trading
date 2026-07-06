@@ -15,6 +15,9 @@ from lightgbm import LGBMRegressor
 
 import config
 
+# random_state pins the subsample/colsample RNG. NB: LightGBM is still not
+# bit-reproducible across different `num_threads` counts; tests allow a small
+# tolerance rather than asserting exact equality.
 DEFAULT_PARAMS = dict(
     n_estimators=600,
     learning_rate=0.05,
@@ -24,6 +27,7 @@ DEFAULT_PARAMS = dict(
     subsample_freq=1,
     colsample_bytree=0.8,
     reg_lambda=1.0,
+    random_state=42,
     n_jobs=-1,
     verbose=-1,
 )

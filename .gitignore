@@ -19,5 +19,11 @@ results/*.html
 results/*.csv
 results/models/
 
+# Graphify (knowledge-graph output, rebuild with `graphify update .`)
+graphify-out/
+
 # OS
 .DS_Store
+
+# Claude working notes (private strategy — keep local, not for the public remote)
+CLAUDE.md
