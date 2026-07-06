@@ -32,7 +32,7 @@ BATTERY = dict(
     cost_per_mwh_cycle=3.0,      # degradation + grid fees per MWh discharged,
     reserve_price_eur_mw_h=6.0,  # FCR availability payment per committed MW per hour
     exec_fee_per_mwh=0.30,       # bid-ask half-spread paid on every MWh traded
-    impact_coeff_eur_per_mw=0.40,  # linear price impact: cost grows with trade size^2
+    impact_coeff_eur_per_mw=0.40,  # linear *marginal* impact -> quadratic cost in trade size (see execution_cost)
 )                                # the friction that makes "profitable?" non-trivial
 
 # --- Forecast quantiles ----------------------------------------------------

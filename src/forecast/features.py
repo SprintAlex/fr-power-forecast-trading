@@ -58,8 +58,13 @@ def load_raw(synthetic: bool = True) -> pd.DataFrame:
     return df
 
 
-def build_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a per-hour feature table with a gate-legal column set + target."""
+def build_features(df: pd.DataFrame, zone: str = config.ZONE) -> pd.DataFrame:
+    """Return a per-hour feature table with a gate-legal column set + target.
+
+    `zone` selects the public-holiday calendar (FR vs DE-LU); it must match the
+    zone the raw frame came from, else a French holiday is flagged on a German
+    delivery day (or vice-versa) and corrupts the load-dip feature.
+    """
     df = df.sort_index().copy()
     price = df["price_eur_mwh"]
     out = pd.DataFrame(index=df.index)
@@ -94,10 +99,11 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     out["dow"] = local.dayofweek
     out["month"] = local.month
     out["is_weekend"] = (local.dayofweek >= 5).astype(int)
-    # Public holidays (known in advance -> legal). Country = config zone.
+    # Public holidays (known in advance -> legal). Country = the feature's zone.
     import holidays as _hol
 
-    hcal = _hol.country_holidays(config.ZONE, years=range(local.year.min(), local.year.max() + 1))
+    country = "DE" if zone == "DE" else zone
+    hcal = _hol.country_holidays(country, years=range(local.year.min(), local.year.max() + 1))
     out["is_holiday"] = np.array([d.date() in hcal for d in local]).astype(int)
     # Cyclical encodings (help tree splits less, but standard for LEAR/linear).
     out["hour_sin"] = np.sin(2 * np.pi * out["hour"] / 24)

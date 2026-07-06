@@ -37,18 +37,21 @@ had a lower MAE than LEAR but made about the same P&L. That surprised me and it'
 benchmark every strategy against a perfect-foresight ceiling and report % captured, because that's
 the number that decides if the model is worth running.
 
-**The model breaks in a crisis — and I think that's the most honest result here.** Trained only on
-calm 2021 and asked to forecast 2022 (gas spiking, prices averaging ~276 €/MWh vs ~58 in 2024), the
-R² goes *negative* and MAE blows up to ~127. It still captures ~63% of the perfect-foresight P&L
-because the spreads are enormous, and it recovers once 2022 is in the training window (2023 R²≈0.79).
-I like that this is visible rather than hidden — it's the quantified reason a trader has to recognise
-an out-of-regime moment and stop trusting the model.
+**The model breaks in a crisis — and I think that's the most honest result here.** Asked to forecast
+2022 (gas spiking, prices averaging ~276 €/MWh vs ~58 in 2024) with only ~2 months of legal pre-crisis
+history — real EUA carbon data only starts Oct-2021 — forecast R² collapses to ~0.14 and MAE blows up
+to ~86. Yet the battery still captures ~78% of the perfect-foresight P&L because the spreads are
+enormous, and skill recovers as 2022 enters the training window (2023 R²≈0.46). I like that this is
+visible rather than hidden — it's the quantified reason a trader has to recognise an out-of-regime
+moment and read P&L capture, not R².
 
-## Numbers (real 2024 test)
+## Numbers (real 2024 test, walk-forward monthly)
 
-- Forecast: LightGBM P50 MAE ~15.7 €/MWh, R²≈0.72, beats LEAR (0.64) and naive D-7 (0.17).
-- Quantiles under-cover raw (~55% for a nominal 80% band); conformal calibration brings it to ~78%
-  with a finite-sample guarantee, so the intervals are actually usable for sizing.
+- Forecast: LightGBM P50 MAE ~25.8 €/MWh, R²≈0.37, beats LEAR (0.32) and naive D-7 (0.17). The edge over
+  naive on raw error is modest — the point of the project is that trading P&L, not MAE, is the verdict.
+- Quantiles under-cover raw (~45% for a nominal 80% band); conformal calibration brings it to ~73%
+  with a finite-sample guarantee. Still short of nominal on 2024 — a real 2023→2024 distribution shift
+  that violates exchangeability, worth flagging honestly rather than claiming 80%.
 - Battery: captures ~83% of perfect foresight. Honest nuance — in a calm year its edge over the naive
   forecast is small; the value shows up in volatile regimes.
 - FR-DE spread: 72% sign accuracy (vs 55% for a lagged-spread naive), ~91% of perfect captured. On a

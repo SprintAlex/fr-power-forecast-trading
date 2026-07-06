@@ -19,19 +19,23 @@ trader risk metrics. Portfolio piece for energy trading / quant interviews
 4. **Eval** — P&L, % perfect-foresight captured, Sharpe, VaR/drawdown, spread-sign accuracy, pinball, coverage,
    spike/neg-price recall.
 
-## Results (real ENTSO-E, FR/DE 2021-2024, test = 2024)
+## Results (real ENTSO-E, FR/DE 2021-2024, test = 2024, walk-forward monthly)
 | Strategy | metric | model | naive | perfect |
 |---|---|---|---|---|
 | Battery arbitrage | % perfect captured | **83%** | 78% | 100% |
 | FR-DE spread | sign accuracy | **72%** | 55% | 100% |
 | | % perfect captured | **91%** | — | 100% |
 
-Forecast (FR 2024 out-of-sample): P50 MAE **15.7 €/MWh**, R² **0.72–0.75**, DirAcc **0.73**, spike-recall
-**0.77**; P10-P90 coverage **≈78%** (conformal, from ~55% raw). Top features: gas TTF momentum, wind, CO2.
+Forecast (FR 2024 out-of-sample, walk-forward): P50 MAE **25.8 €/MWh** vs naive-D7 **27.8**, R² **0.37**,
+DirAcc **0.66**, spike-recall **0.73**; P10-P90 coverage **73%** (conformal, from ~45% raw). Top features:
+gas TTF momentum, wind forecast, CO2. The point-forecast edge over naive is modest — **the money is in the
+trading layer**: the same forecast captures 83% of perfect on the battery and 72% spread-sign accuracy.
 
-**Crisis stress test (real 2022):** trained only on calm 2021, the model faces the real gas crisis (price
-mean **276 €/MWh**) and breaks — R² **−0.53**, MAE 127 — then recovers once the crisis is in training
-(2023 R² 0.79). The quantified case for a trader overriding the model out-of-regime.
+**Crisis stress test (real, train < year → predict year):** in 2022 the model meets the real gas crisis
+(price mean **276 €/MWh**, gas TTF **132**) with only ~2 months of legal pre-crisis history — forecast R²
+collapses to **0.14** (MAE 85.7), yet the battery still captures **78%** of perfect. Skill recovers as the
+crisis enters training (2023 R² 0.46). The trader reading: **P&L capture survives a regime break the point
+forecast does not** — read % captured, not R².
 
 A 1 MW price-taker inflates absolute Sharpe (no market impact) — read **% captured / sign accuracy**.
 Talking points: [docs/interview_notes.md](docs/interview_notes.md). Full walk-through:
@@ -46,7 +50,7 @@ Talking points: [docs/interview_notes.md](docs/interview_notes.md). Full walk-th
 **Probabilistic day-ahead forecast (P10/P50/P90, conformal)**
 ![forecast fan chart](docs/img/forecast_fan.png)
 
-**Crisis stress test — the model breaks out-of-distribution in 2022, then recovers**
+**Crisis stress test — forecast R² collapses in the 2022 crisis, but battery P&L capture holds**
 ![regime crisis](docs/img/regime_crisis.png)
 
 | Battery arbitrage P&L vs perfect foresight | FR-DE spread — sign accuracy |
@@ -64,6 +68,7 @@ python run_all.py --real     # use real ENTSO-E parquet (after token + pull)
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python -m pytest -q              # 14 guardrail tests — run inside .venv (needs cvxpy/lightgbm)
 cp .env.example .env          # then paste your ENTSO-E API token
 python -m src.data.entsoe_pull   # pulls config window -> data/raw/fr_entsoe_raw.parquet
 ```

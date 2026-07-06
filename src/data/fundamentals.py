@@ -36,15 +36,22 @@ def _close(ticker: str, start: str, end: str) -> pd.Series:
 
 
 def fetch_daily(start: str | None = None, end: str | None = None) -> pd.DataFrame:
-    """Daily gas + CO2 on a continuous calendar (weekends/holidays ffilled)."""
+    """Daily gas + CO2 on a continuous calendar (weekends/holidays ffilled).
+
+    Only forward-fill: carrying the last known settle over a weekend/holiday is
+    gate-legal. We deliberately do NOT back-fill — the CO2.L series starts
+    Oct-2021, so earlier rows stay NaN and get dropped downstream. Back-filling
+    would inject a future settle into the past (a look-ahead), which is exactly
+    the discipline this repo is about (see HANDOFF s1).
+    """
     start = start or config.START
     end = end or config.END
     gas = _close(GAS_TICKER, start, end)
     co2 = _close(CO2_TICKER, start, end)
     cal = pd.date_range(start, end, freq="D", inclusive="left")
     df = pd.DataFrame(index=cal)
-    df["gas_ttf_eur_mwh"] = gas.reindex(cal).ffill().bfill()
-    df["co2_eur_t"] = co2.reindex(cal).ffill().bfill()   # bfill covers pre-Oct-2021 CO2 gap
+    df["gas_ttf_eur_mwh"] = gas.reindex(cal).ffill()
+    df["co2_eur_t"] = co2.reindex(cal).ffill()   # pre-Oct-2021 stays NaN (dropped later)
     return df
 
 
@@ -53,7 +60,7 @@ def attach(raw: pd.DataFrame, start: str | None = None, end: str | None = None) 
 
     Daily settles are lagged one day (previous-day close) -> no same-day lookahead.
     """
-    daily = fetch_daily(start, end).shift(1).ffill().bfill()   # 1-day legality lag
+    daily = fetch_daily(start, end).shift(1).ffill()   # 1-day legality lag, no back-fill
     local_date = raw.index.tz_convert(config.ZONE_TZ).normalize().tz_localize(None)
     out = raw.copy()
     out["gas_ttf_eur_mwh"] = daily["gas_ttf_eur_mwh"].reindex(local_date).to_numpy()

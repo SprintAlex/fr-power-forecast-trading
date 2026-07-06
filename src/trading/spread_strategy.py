@@ -32,7 +32,7 @@ def forecast_zone(zone: str, synthetic: bool = True) -> pd.DataFrame:
     raw = pd.read_parquet(syn_path(zone) if synthetic else raw_path(zone))
     if raw.index.tz is None:
         raw.index = raw.index.tz_localize("UTC")
-    feat = build_features(raw)
+    feat = build_features(raw, zone=zone)
     cols = [c for c in FEATURE_COLS if c in feat.columns]
     ts = pd.Timestamp(TEST_START, tz="UTC")
     train, test = feat[feat.index < ts], feat[feat.index >= ts]
