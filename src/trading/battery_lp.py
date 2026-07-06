@@ -27,6 +27,14 @@ import pandas as pd
 import config
 
 
+def _check(prob) -> None:
+    """Guard against a silent solver failure: on non-optimal status cvxpy leaves
+    the variable `.value`s as None, which crashes cryptically downstream. Fail
+    loudly here instead."""
+    if prob.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
+        raise RuntimeError(f"battery LP not solved to optimality: status={prob.status}")
+
+
 def optimize_day(prices: np.ndarray, batt: dict) -> dict:
     """LP for one day. Returns schedule + optimised value (on `prices`)."""
     n = len(prices)
@@ -50,6 +58,7 @@ def optimize_day(prices: np.ndarray, batt: dict) -> dict:
     profit = prices @ (discharge - charge) - cost * cp.sum(discharge)
     prob = cp.Problem(cp.Maximize(profit), cons)
     prob.solve(solver=cp.CLARABEL)
+    _check(prob)
 
     c = np.asarray(charge.value).ravel()
     d = np.asarray(discharge.value).ravel()
@@ -82,7 +91,9 @@ def optimize_day_robust(p_lo: np.ndarray, p_hi: np.ndarray, batt: dict) -> dict:
     cons.append(cp.sum(discharge) <= cyc * C)
 
     profit = p_lo @ discharge - p_hi @ charge - cost * cp.sum(discharge)
-    cp.Problem(cp.Maximize(profit), cons).solve(solver=cp.CLARABEL)
+    prob = cp.Problem(cp.Maximize(profit), cons)
+    prob.solve(solver=cp.CLARABEL)
+    _check(prob)
     c = np.asarray(charge.value).ravel()
     d = np.asarray(discharge.value).ravel()
     return {"charge": c, "discharge": d, "net_mwh": d - c}
@@ -119,7 +130,9 @@ def optimize_day_reserve(prices: np.ndarray, batt: dict) -> dict:
     cons.append(cp.sum(discharge) <= cyc * C)
 
     arb = prices @ (discharge - charge) - cost * cp.sum(discharge)
-    cp.Problem(cp.Maximize(arb + rprice * cp.sum(reserve)), cons).solve(solver=cp.CLARABEL)
+    prob = cp.Problem(cp.Maximize(arb + rprice * cp.sum(reserve)), cons)
+    prob.solve(solver=cp.CLARABEL)
+    _check(prob)
     c = np.asarray(charge.value).ravel()
     d = np.asarray(discharge.value).ravel()
     r = np.asarray(reserve.value).ravel()
@@ -160,7 +173,9 @@ def optimize_day_cvar(scenarios: np.ndarray, batt: dict, lam: float = 1.0,
     cons += [u >= -profit_s - alpha]
     cvar = alpha + cp.sum(u) / ((1 - beta) * S)
     expected = cp.sum(profit_s) / S
-    cp.Problem(cp.Maximize(expected - lam * cvar), cons).solve(solver=cp.CLARABEL)
+    prob = cp.Problem(cp.Maximize(expected - lam * cvar), cons)
+    prob.solve(solver=cp.CLARABEL)
+    _check(prob)
     c = np.asarray(charge.value).ravel()
     d = np.asarray(discharge.value).ravel()
     return {"charge": c, "discharge": d, "net_mwh": d - c}

@@ -35,17 +35,26 @@ ALPHA = 0.2               # 1-alpha = 80% target coverage for P10-P90
 PRED_PATH = config.DATA_PROCESSED / "predictions.parquet"
 
 
-def _fit_block(train: pd.DataFrame, pred: pd.DataFrame, cols: list[str]):
+def _fit_block(train: pd.DataFrame, pred: pd.DataFrame, cols: list[str],
+               synthetic: bool = True):
     """Fit LEAR + conformalised LightGBM on `train`, predict `pred`."""
     cal_start = train.index.max() - pd.Timedelta(days=CAL_DAYS)
     proper = train[train.index < cal_start]
     cal = train[train.index >= cal_start]
+    # Degrade gracefully for short training blocks (e.g. the real-data 2022 regime
+    # fold: legal CO2 only starts Oct-2021, so pre-crisis training is ~2 months).
+    # A fixed 90-day cal tail would empty `proper` -> LightGBM on no rows. Fall back
+    # to a half split so the model still trains and conformal still calibrates.
+    if len(proper) < 500:
+        cut = train.index[len(train) // 2]
+        proper = train[train.index < cut]
+        cal = train[train.index >= cut]
 
     lear = LEAR().fit(proper, cols)
     Xp, yp = xy(proper, cols)
     from src.forecast.tune import load_tuned
 
-    q = QuantileLGBM(params=load_tuned()).fit(Xp, yp)
+    q = QuantileLGBM(params=load_tuned(synthetic)).fit(Xp, yp)
 
     qc = q.predict(xy(cal, cols)[0])
     delta = conformal_delta(cal["target"], qc["p10"], qc["p90"], ALPHA)
@@ -89,13 +98,13 @@ def run(synthetic: bool = True, walkforward: bool = False) -> pd.DataFrame:
             if fold.empty:
                 continue
             tr = feat[feat.index < f0]
-            block, last_q, _ = _fit_block(tr, fold, cols)
+            block, last_q, _ = _fit_block(tr, fold, cols, synthetic)
             parts.append(block)
             print(f"  {f0.date()}  train<{f0.date()} ({len(tr):,} h) -> pred {len(fold)} h")
         preds = pd.concat(parts)
     else:
         print("Single fit + conformal ...")
-        preds, last_q, delta = _fit_block(train, test, cols)
+        preds, last_q, delta = _fit_block(train, test, cols, synthetic)
         print(f"  conformal delta = {delta:.1f} EUR/MWh")
 
     out = out.join(preds)
